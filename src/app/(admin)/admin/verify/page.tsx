@@ -50,7 +50,7 @@ function VerifyInner() {
           {digits.map((d, i) => (
             <input
               key={i}
-              ref={(el) => (refs.current[i] = el)}
+              ref={(el) => { refs.current[i] = el; }}
               value={d}
               onChange={(e) => setDigit(i, e.target.value)}
               maxLength={1}

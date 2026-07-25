@@ -22,6 +22,8 @@ export default function DashboardPage() {
   const router = useRouter();
   const [data, setData] = useState<Dashboard | null>(null);
   const [regionIdx, setRegionIdx] = useState(0);
+  const [audio, setAudio] = useState<Record<string, string>>({});
+  const [loadingAudio, setLoadingAudio] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/admin/dashboard")
@@ -29,6 +31,15 @@ export default function DashboardPage() {
       .then(setData)
       .catch(() => router.push("/admin/login"));
   }, [router]);
+
+  async function playAudio(id: string) {
+    setLoadingAudio(id);
+    const res = await fetch(`/api/admin/consultations/audio?id=${id}`);
+    const d = await res.json();
+    setLoadingAudio(null);
+    if (res.ok) setAudio((a) => ({ ...a, [id]: d.url }));
+    else alert(d.error?.message ?? "再生できませんでした");
+  }
 
   return (
     <AdminShell>
@@ -38,7 +49,6 @@ export default function DashboardPage() {
           <p className="text-slate-500">読み込み中...</p>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* 未対応の相談 */}
             <section className="bg-white p-6 rounded-lg shadow border border-gray-200">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg font-bold text-slate-800">未対応の相談</h2>
@@ -56,7 +66,19 @@ export default function DashboardPage() {
                       </span>
                     </div>
                     {c.hasAudio && (
-                      <div className="flex items-center mt-2 text-sm text-slate-600">🎤 音声メッセージが届いています</div>
+                      <div className="mt-2">
+                        {audio[c.id] ? (
+                          <audio controls autoPlay src={audio[c.id]} className="w-full" />
+                        ) : (
+                          <button
+                            onClick={() => playAudio(c.id)}
+                            disabled={loadingAudio === c.id}
+                            className="text-sm bg-orange-100 text-orange-700 border border-orange-300 px-3 py-2 rounded font-bold hover:bg-orange-200 disabled:opacity-50"
+                          >
+                            {loadingAudio === c.id ? "読み込み中..." : "▶ 音声を再生"}
+                          </button>
+                        )}
+                      </div>
                     )}
                   </li>
                 ))}
@@ -66,7 +88,6 @@ export default function DashboardPage() {
               </ul>
             </section>
 
-            {/* 次回イベント */}
             <section className="bg-white p-6 rounded-lg shadow border border-gray-200">
               <h2 className="text-lg font-bold text-slate-800 mb-4">次回イベント（スマホ教室）</h2>
               {data.nextEvent ? (
@@ -90,7 +111,6 @@ export default function DashboardPage() {
               )}
             </section>
 
-            {/* 配信中お知らせ（地域別） */}
             <section className="lg:col-span-2 bg-white p-6 rounded-lg shadow border border-gray-200">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg font-bold text-slate-800">現在配信中のお知らせ</h2>

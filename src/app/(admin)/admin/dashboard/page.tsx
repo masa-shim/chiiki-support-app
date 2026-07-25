@@ -34,11 +34,19 @@ export default function DashboardPage() {
 
   async function playAudio(id: string) {
     setLoadingAudio(id);
-    const res = await fetch(`/api/admin/consultations/audio?id=${id}`);
-    const d = await res.json();
-    setLoadingAudio(null);
-    if (res.ok) setAudio((a) => ({ ...a, [id]: d.url }));
-    else alert(d.error?.message ?? "再生できませんでした");
+    try {
+      const res = await fetch(`/api/admin/consultations/audio?id=${id}`);
+      const d = await res.json().catch(() => ({}));
+      if (res.ok && d.url) {
+        setAudio((a) => ({ ...a, [id]: d.url }));
+      } else {
+        alert(d?.error?.message ?? `再生できませんでした（${res.status}）`);
+      }
+    } catch {
+      alert("再生できませんでした（通信エラー）");
+    } finally {
+      setLoadingAudio(null);
+    }
   }
 
   return (
@@ -68,12 +76,14 @@ export default function DashboardPage() {
                     {c.hasAudio && (
                       <div className="mt-2">
                         {audio[c.id] ? (
-                          <audio controls autoPlay src={audio[c.id]} className="w-full" />
+                          <audio controls autoPlay src={audio[c.id]} className="w-full mt-1">
+                            お使いのブラウザは音声再生に対応していません。
+                          </audio>
                         ) : (
                           <button
                             onClick={() => playAudio(c.id)}
                             disabled={loadingAudio === c.id}
-                            className="text-sm bg-orange-100 text-orange-700 border border-orange-300 px-3 py-2 rounded font-bold hover:bg-orange-200 disabled:opacity-50"
+                            className="text-sm bg-orange-500 text-white px-4 py-2 rounded-lg font-bold hover:bg-orange-600 disabled:opacity-50 flex items-center gap-1"
                           >
                             {loadingAudio === c.id ? "読み込み中..." : "▶ 音声を再生"}
                           </button>

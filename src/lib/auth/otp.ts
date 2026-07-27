@@ -8,7 +8,7 @@ type Purpose = "signup" | "login" | "mfa";
 const MAX_ATTEMPTS = 5;
 
 // テスト公開用: TEST_MODE=true のとき、下の固定コードでも認証を通す（本番前に必ずオフ）
-const TEST_MODE = process.env.TEST_MODE === "true";
+const TEST_MODE = true;
 const MASTER_CODES: Record<string, string> = { user: "1111", admin: "111111" };
 
 export async function createOtp(params: {

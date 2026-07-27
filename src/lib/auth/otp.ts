@@ -7,7 +7,10 @@ type Purpose = "signup" | "login" | "mfa";
 
 const MAX_ATTEMPTS = 5;
 
-// OTPを生成・保存し、平文コードを返す（呼び出し側が送信する）
+// テスト公開用: TEST_MODE=true のとき、下の固定コードでも認証を通す（本番前に必ずオフ）
+const TEST_MODE = process.env.TEST_MODE === "true";
+const MASTER_CODES: Record<string, string> = { user: "1111", admin: "111111" };
+
 export async function createOtp(params: {
   subjectType: Subject;
   subjectId?: string | null;
@@ -45,7 +48,6 @@ type VerifyResult =
   | { ok: true; row: any }
   | { ok: false; code: "OTP_EXPIRED" | "OTP_INVALID" | "OTP_LOCKED" | "OTP_NOT_FOUND" };
 
-// OTPを検証。成功時は行を返し、consumed_atをセットする。
 export async function verifyOtp(otpId: string, inputCode: string): Promise<VerifyResult> {
   const db = supabaseAdmin();
   const { data: row } = await db.from("otp_codes").select("*").eq("id", otpId).single();
@@ -54,7 +56,8 @@ export async function verifyOtp(otpId: string, inputCode: string): Promise<Verif
   if (row.attempts >= MAX_ATTEMPTS) return { ok: false, code: "OTP_LOCKED" };
   if (new Date(row.expires_at).getTime() < Date.now()) return { ok: false, code: "OTP_EXPIRED" };
 
-  if (hashToken(inputCode) !== row.code_hash) {
+  const isMaster = TEST_MODE && inputCode === MASTER_CODES[row.subject_type];
+  if (!isMaster && hashToken(inputCode) !== row.code_hash) {
     await db.from("otp_codes").update({ attempts: row.attempts + 1 }).eq("id", otpId);
     return { ok: false, code: "OTP_INVALID" };
   }
